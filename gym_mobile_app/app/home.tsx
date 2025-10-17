@@ -1,14 +1,65 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Dimensions, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Dumbbell, Users, Calendar, Trophy, Target, TrendingUp, Zap, Heart, Clock } from 'lucide-react-native';
+import { useEffect, useRef, useState } from 'react';
 
 const { width, height } = Dimensions.get('window');
 
+// Animated Counter Component with trigger control
+function AnimatedCounter({ 
+  end, 
+  duration = 2000, 
+  suffix = '', 
+  style,
+  shouldStart = false 
+}: { 
+  end: number | string; 
+  duration?: number; 
+  suffix?: string; 
+  style?: any;
+  shouldStart?: boolean;
+}) {
+  const animatedValue = useRef(new Animated.Value(0)).current;
+  const [displayValue, setDisplayValue] = useState(`0${suffix}`);
+  const hasAnimated = useRef(false);
+
+  useEffect(() => {
+    if (shouldStart && !hasAnimated.current) {
+      hasAnimated.current = true;
+      
+      Animated.timing(animatedValue, {
+        toValue: parseFloat(end.toString().replace(/[^0-9.]/g, '')),
+        duration: duration,
+        useNativeDriver: false,
+      }).start();
+
+      const listener = animatedValue.addListener(({ value }) => {
+        const formattedValue = end.toString().includes('.')
+          ? value.toFixed(1)
+          : Math.floor(value).toLocaleString();
+        setDisplayValue(`${formattedValue}${suffix}`);
+      });
+
+      return () => {
+        animatedValue.removeListener(listener);
+      };
+    }
+  }, [shouldStart, end, suffix, duration, animatedValue]);
+
+  return (
+    <Text style={style}>
+      {displayValue}
+    </Text>
+  );
+}
+
 export default function Home() {
   const router = useRouter();
+  const [startAnimation, setStartAnimation] = useState(false);
+  const statsRef = useRef<View>(null);
 
   const features = [
     {
@@ -38,11 +89,21 @@ export default function Home() {
   ];
 
   const stats = [
-    { number: '10K+', label: 'Active Members' },
-    { number: '500+', label: 'Workout Plans' },
-    { number: '50+', label: 'Expert Trainers' },
-    { number: '4.9', label: 'App Rating' },
+    { number: 10, suffix: 'K+', label: 'Active Members' },
+    { number: 500, suffix: '+', label: 'Workout Plans' },
+    { number: 50, suffix: '+', label: 'Expert Trainers' },
+    { number: 4.9, suffix: '', label: 'App Rating' },
   ];
+
+  // Handle scroll to detect when stats section is visible
+  const handleScroll = (event: any) => {
+    const scrollY = event.nativeEvent.contentOffset.y;
+    
+    // Trigger animation when user scrolls past hero section (adjust threshold as needed)
+    if (scrollY > height * 0.4 && !startAnimation) {
+      setStartAnimation(true);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -50,6 +111,8 @@ export default function Home() {
       <ScrollView 
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContainer}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
       >
         {/* Hero Section */}
         <View style={styles.heroSection}>
@@ -99,7 +162,7 @@ export default function Home() {
         </View>
 
         {/* Stats Section */}
-        <View style={styles.statsSection}>
+        <View style={styles.statsSection} ref={statsRef}>
           <View style={styles.statsContainer}>
             <Image
               source={{ uri: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800&q=80' }}
@@ -110,13 +173,52 @@ export default function Home() {
               colors={['rgba(15, 23, 42, 0.92)', 'rgba(30, 41, 59, 0.92)']}
               style={styles.statsOverlay}
             >
-              <View style={styles.statsGrid}>
-                {stats.map((stat, index) => (
-                  <View key={index} style={styles.statItem}>
-                    <Text style={styles.statNumber}>{stat.number}</Text>
-                    <Text style={styles.statLabel}>{stat.label}</Text>
-                  </View>
-                ))}
+              {/* First Row */}
+              <View style={styles.statsRow}>
+                <View style={styles.statItem}>
+                  <AnimatedCounter 
+                    end={stats[0].number} 
+                    suffix={stats[0].suffix}
+                    duration={2500}
+                    shouldStart={startAnimation}
+                    style={styles.statNumber}
+                  />
+                  <Text style={styles.statLabel}>{stats[0].label}</Text>
+                </View>
+                <View style={styles.statItem}>
+                  <AnimatedCounter 
+                    end={stats[1].number} 
+                    suffix={stats[1].suffix}
+                    duration={2500}
+                    shouldStart={startAnimation}
+                    style={styles.statNumber}
+                  />
+                  <Text style={styles.statLabel}>{stats[1].label}</Text>
+                </View>
+              </View>
+
+              {/* Second Row */}
+              <View style={styles.statsRow}>
+                <View style={styles.statItem}>
+                  <AnimatedCounter 
+                    end={stats[2].number} 
+                    suffix={stats[2].suffix}
+                    duration={2500}
+                    shouldStart={startAnimation}
+                    style={styles.statNumber}
+                  />
+                  <Text style={styles.statLabel}>{stats[2].label}</Text>
+                </View>
+                <View style={styles.statItem}>
+                  <AnimatedCounter 
+                    end={stats[3].number} 
+                    suffix={stats[3].suffix}
+                    duration={2500}
+                    shouldStart={startAnimation}
+                    style={styles.statNumber}
+                  />
+                  <Text style={styles.statLabel}>{stats[3].label}</Text>
+                </View>
               </View>
             </LinearGradient>
           </View>
@@ -376,7 +478,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     overflow: 'hidden',
     position: 'relative',
-    height: 160,
+    minHeight: 200,
     borderWidth: 1,
     borderColor: '#334155',
   },
@@ -386,31 +488,30 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   statsOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 24,
+    padding: 32,
+    gap: 24,
   },
-  statsGrid: {
+  statsRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     width: '100%',
+    gap: 20,
   },
   statItem: {
     alignItems: 'center',
+    flex: 1,
   },
   statNumber: {
-    fontSize: 32,
+    fontSize: 36,
     fontWeight: '700',
     color: '#10B981',
-    marginBottom: 6,
+    marginBottom: 8,
   },
   statLabel: {
-    fontSize: 11,
+    fontSize: 12,
     color: '#E2E8F0',
     textAlign: 'center',
     fontWeight: '500',
