@@ -61,32 +61,36 @@ export default function Home() {
   const [startAnimation, setStartAnimation] = useState(false);
   const statsRef = useRef<View>(null);
 
-  const features = [
-    {
-      icon: Dumbbell,
-      title: 'Personalized Workouts',
-      description: 'Custom fitness plans tailored to your goals',
-      color: '#10B981',
-    },
-    {
-      icon: Users,
-      title: 'Expert Trainers',
-      description: 'Connect with certified fitness professionals',
-      color: '#3B82F6',
-    },
-    {
-      icon: Calendar,
-      title: 'Class Scheduling',
-      description: 'Book your favorite classes anytime',
-      color: '#F59E0B',
-    },
-    {
-      icon: Trophy,
-      title: 'Track Progress',
-      description: 'Monitor your fitness journey with detailed analytics',
-      color: '#EF4444',
-    },
-  ];
+const features = [
+  {
+    icon: Dumbbell,
+    title: 'Personalized Workouts',
+    description: 'Custom fitness plans tailored to your goals',
+    color: '#10B981',
+    image: 'https://images.unsplash.com/photo-1571902943202-507ec2618e8f?w=600&q=80',
+  },
+  {
+    icon: Users,
+    title: 'Expert Trainers',
+    description: 'Connect with certified fitness professionals',
+    color: '#3B82F6',
+    image: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=600&q=80',
+  },
+  {
+    icon: Calendar,
+    title: 'Class Scheduling',
+    description: 'Book your favorite classes anytime',
+    color: '#F59E0B',
+    image: 'https://images.unsplash.com/photo-1594737625785-a6cbdabd333c?w=600&q=80',
+  },
+  {
+    icon: Trophy,
+    title: 'Track Progress',
+    description: 'Monitor your fitness journey with detailed analytics',
+    color: '#EF4444',
+    image: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=600&q=80',
+  },
+];
 
   const stats = [
     { number: 10, suffix: 'K+', label: 'Active Members' },
@@ -126,6 +130,7 @@ export default function Home() {
               <View style={styles.logoContainer}>
                 <Dumbbell size={40} color="#10B981" strokeWidth={2.5} />
               </View>
+              <Text style={styles.appName}>HealthHub</Text>
               <Text style={styles.heroTitle}>Transform Your Body,{'\n'}Transform Your Life</Text>
               <Text style={styles.heroSubtitle}>
                 Join thousands of members achieving their fitness goals with personalized workouts and expert guidance
@@ -232,11 +237,19 @@ export default function Home() {
           <View style={styles.featuresGrid}>
             {features.map((feature, index) => (
               <View key={index} style={styles.featureCard}>
-                <View style={[styles.featureIconContainer, { backgroundColor: `${feature.color}20` }]}>
-                  <feature.icon size={28} color={feature.color} strokeWidth={2} />
+                <Image
+                  source={{ uri: feature.image }}
+                  style={styles.featureBackgroundImage}
+                  resizeMode="cover"
+                />
+                <View style={styles.featureOverlay} />
+                <View style={styles.featureContent}>
+                  <View style={[styles.featureIconContainer, { backgroundColor: `${feature.color}20` }]}>
+                    <feature.icon size={28} color={feature.color} strokeWidth={2} />
+                  </View>
+                  <Text style={styles.featureTitle}>{feature.title}</Text>
+                  <Text style={styles.featureDescription}>{feature.description}</Text>
                 </View>
-                <Text style={styles.featureTitle}>{feature.title}</Text>
-                <Text style={styles.featureDescription}>{feature.description}</Text>
               </View>
             ))}
           </View>
@@ -376,6 +389,32 @@ export default function Home() {
 }
 
 const styles = StyleSheet.create({
+  appName: {
+  fontSize: 28,
+  fontWeight: '700',
+  color: '#10B981',
+  marginBottom: 16,
+  letterSpacing: 0.5,
+},
+  featureBackgroundImage: {
+  position: 'absolute',
+  width: '100%',
+  height: '100%',
+  borderRadius: 16,
+},
+featureOverlay: {
+  position: 'absolute',
+  top: 0,
+  left: 0,
+  right: 0,
+  bottom: 0,
+  backgroundColor: 'rgba(15, 23, 42, 0.88)',
+  borderRadius: 16,
+},
+featureContent: {
+  position: 'relative',
+  zIndex: 1,
+},
   container: {
     flex: 1,
     backgroundColor: '#0F172A',
@@ -534,13 +573,16 @@ const styles = StyleSheet.create({
   featuresGrid: {
     gap: 16,
   },
-  featureCard: {
-    backgroundColor: '#1E293B',
-    borderRadius: 16,
-    padding: 24,
-    borderWidth: 1,
-    borderColor: '#334155',
-  },
+featureCard: {
+  backgroundColor: '#1E293B',
+  borderRadius: 16,
+  padding: 24,
+  borderWidth: 1,
+  borderColor: '#334155',
+  position: 'relative',
+  overflow: 'hidden',  // This is the key fix
+  minHeight: 180,
+},
   featureIconContainer: {
     width: 56,
     height: 56,
