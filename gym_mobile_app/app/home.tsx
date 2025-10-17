@@ -61,6 +61,29 @@ export default function Home() {
   const [startAnimation, setStartAnimation] = useState(false);
   const statsRef = useRef<View>(null);
 
+  const workoutScrollRef = useRef<ScrollView>(null);
+const scrollPosition = useRef(0);
+
+useEffect(() => {
+  const scrollInterval = setInterval(() => {
+    if (workoutScrollRef.current) {
+      scrollPosition.current += 1;
+      
+      // Reset scroll position when it reaches the end (adjust 900 based on your content width)
+      if (scrollPosition.current >= 900) {
+        scrollPosition.current = 0;
+      }
+      
+      workoutScrollRef.current.scrollTo({
+        x: scrollPosition.current,
+        animated: true,
+      });
+    }
+  }, 30); // Adjust speed: lower = faster, higher = slower
+
+  return () => clearInterval(scrollInterval);
+}, []);
+
 const features = [
   {
     icon: Dumbbell,
@@ -259,9 +282,11 @@ const features = [
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Popular Workouts</Text>
           <ScrollView 
+            ref={workoutScrollRef}
             horizontal 
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.workoutScroll}
+            scrollEventThrottle={16}
           >
             <View style={styles.workoutCard}>
               <Image
