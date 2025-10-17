@@ -69,20 +69,30 @@ useEffect(() => {
     if (workoutScrollRef.current) {
       scrollPosition.current += 1;
       
-      // Reset scroll position when it reaches the end (adjust 900 based on your content width)
-      if (scrollPosition.current >= 900) {
-        scrollPosition.current = 0;
-      }
-      
       workoutScrollRef.current.scrollTo({
         x: scrollPosition.current,
         animated: true,
       });
+      
+      // Calculate total scroll width: 6 cards × 296px (280 + 16 margin)
+      const totalWidth = 6 * 296;
+      
+      // Reset to beginning when reaching the end for circular effect
+      if (scrollPosition.current >= totalWidth) {
+        setTimeout(() => {
+          workoutScrollRef.current?.scrollTo({
+            x: 0,
+            animated: false, // Instantly jump back
+          });
+          scrollPosition.current = 0;
+        }, 500);
+      }
     }
-  }, 30); // Adjust speed: lower = faster, higher = slower
+  }, 30);
 
   return () => clearInterval(scrollInterval);
 }, []);
+ 
 
 const features = [
   {
@@ -342,6 +352,63 @@ const features = [
                 </View>
                 <Text style={styles.workoutTitle}>Strength Training</Text>
                 <Text style={styles.workoutCategory}>Weights • Intermediate</Text>
+              </LinearGradient>
+            </View>
+
+            <View style={styles.workoutCard}>
+              <Image
+                source={{ uri: 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=400&q=80' }}
+                style={styles.workoutImage}
+                resizeMode="cover"
+              />
+              <LinearGradient
+                colors={['transparent', 'rgba(0,0,0,0.8)']}
+                style={styles.workoutGradient}
+              >
+                <View style={styles.workoutBadge}>
+                  <Clock size={12} color="#FFFFFF" />
+                  <Text style={styles.workoutBadgeText}>20 min</Text>
+                </View>
+                <Text style={styles.workoutTitle}>Meditation</Text>
+                <Text style={styles.workoutCategory}>Mindfulness • All Levels</Text>
+              </LinearGradient>
+            </View>
+
+            <View style={styles.workoutCard}>
+              <Image
+                source={{ uri: 'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=400&q=80' }}
+                style={styles.workoutImage}
+                resizeMode="cover"
+              />
+              <LinearGradient
+                colors={['transparent', 'rgba(0,0,0,0.8)']}
+                style={styles.workoutGradient}
+              >
+                <View style={styles.workoutBadge}>
+                  <Clock size={12} color="#FFFFFF" />
+                  <Text style={styles.workoutBadgeText}>50 min</Text>
+                </View>
+                <Text style={styles.workoutTitle}>Zumba Dance</Text>
+                <Text style={styles.workoutCategory}>Dance • Beginner</Text>
+              </LinearGradient>
+            </View>
+
+            <View style={styles.workoutCard}>
+              <Image
+                source={{ uri: 'https://images.unsplash.com/photo-1575311373937-040b8e1fd5b6?w=400&q=80' }}
+                style={styles.workoutImage}
+                resizeMode="cover"
+              />
+              <LinearGradient
+                colors={['transparent', 'rgba(0,0,0,0.8)']}
+                style={styles.workoutGradient}
+              >
+                <View style={styles.workoutBadge}>
+                  <Clock size={12} color="#FFFFFF" />
+                  <Text style={styles.workoutBadgeText}>24/7</Text>
+                </View>
+                <Text style={styles.workoutTitle}>Smart Watch Sync</Text>
+                <Text style={styles.workoutCategory}>Tracking • All Devices</Text>
               </LinearGradient>
             </View>
           </ScrollView>
