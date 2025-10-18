@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Animated, Alert, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Animated, Alert, TextInput, InteractionManager} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -241,6 +241,12 @@ const handleBookingConfirm = async () => {
       return;
     }
     
+    console.log('=== BOOKING ATTEMPT ===');
+    console.log('Current step:', currentStep);
+    console.log('isBooking:', isBooking);
+    console.log('Selected date:', bookingData.selectedDate);
+    console.log('Selected time:', bookingData.selectedTime);
+    
     setIsBooking(true); // Start loading
     
     const token = await AsyncStorage.getItem('userToken');
@@ -268,59 +274,54 @@ const handleBookingConfirm = async () => {
     setIsBooking(false);
     setCurrentStep(6);
     
-  } catch (error: any) {
-    setIsBooking(false); // Stop loading on error
-    
-    const status = error.response?.status;
-    const message = error.response?.data?.message || 'An error occurred';
-    
-    console.log('Booking error - Status:', status);
-    console.log('Booking error - Message:', message);
-    console.log('Full error:', error.response?.data);
-    
-    if (status === 409) {
-      // Use setTimeout to ensure Alert appears after state update
-      setTimeout(() => {
-        Alert.alert(
-          '⚠️ Duplicate Booking',
-          'You already have an appointment booked for this time slot with this consultant.\n\nPlease choose a different date and time.',
-          [
-            { 
-              text: 'Choose Different Time', 
-              onPress: () => {
-                setSelectedDate(null);
-                setSelectedTime(null);
-                setCurrentStep(2);
-              },
-              style: 'default'
-            },
-            { 
-              text: 'Cancel', 
-              style: 'cancel' 
-            },
-          ],
-          { cancelable: false }
-        );
-      }, 100);
-    } else if (status === 400) {
-      setTimeout(() => {
-        Alert.alert('Invalid Booking', message, [{ text: 'OK' }]);
-      }, 100);
-    } else if (status === 404) {
-      setTimeout(() => {
-        Alert.alert(
-          'Consultant Not Found',
-          'The selected consultant is no longer available.',
-          [{ text: 'OK', onPress: () => router.back() }]
-        );
-      }, 100);
-    } else {
-      setTimeout(() => {
-        Alert.alert('Booking Failed', message || 'Please try again.', [{ text: 'OK' }]);
-      }, 100);
-    }
-  }
+    } catch (error: any) {
+        console.log('=== BOOKING ERROR ===');
+        setIsBooking(false);
+        
+        const status = error.response?.status;
+        const message = error.response?.data?.message || 'An error occurred';
+        
+        console.log('Booking error - Status:', status);
+        console.log('Booking error - Message:', message);
+        
+        // Wait for interactions to complete before showing alert
+        InteractionManager.runAfterInteractions(() => {
+          if (status === 409) {
+            Alert.alert(
+              '⚠️ Duplicate Booking',
+              'You already have an appointment booked for this time slot with this consultant.\n\nPlease choose a different date and time.',
+              [
+                { 
+                  text: 'Choose Different Time', 
+                  onPress: () => {
+                    setSelectedDate(null);
+                    setSelectedTime(null);
+                    setCurrentStep(2);
+                  },
+                  style: 'default'
+                },
+                { 
+                  text: 'Cancel', 
+                  style: 'cancel' 
+                },
+              ],
+              { cancelable: false }
+            );
+          } else if (status === 400) {
+            Alert.alert('Invalid Booking', message, [{ text: 'OK' }]);
+          } else if (status === 404) {
+            Alert.alert(
+              'Consultant Not Found',
+              'The selected consultant is no longer available.',
+              [{ text: 'OK', onPress: () => router.back() }]
+            );
+          } else {
+            Alert.alert('Booking Failed', message || 'Please try again.', [{ text: 'OK' }]);
+          }
+        });
+      }
 };
+
 
   const renderProgressBar = () => (
     <View style={styles.progressContainer}>
