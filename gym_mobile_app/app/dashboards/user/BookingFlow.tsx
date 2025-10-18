@@ -157,34 +157,56 @@ export default function BookingFlow() {
     }
   };
 
-  const handleBookingConfirm = async () => {
-    try {
-      const token = await AsyncStorage.getItem('userToken');
-      
-      // API call to create booking
-      await axios.post(
-        `${API_BASE_URL}/bookings`,
-        {
-          consultantId: bookingData.consultantId,
-          date: bookingData.selectedDate,
-          time: bookingData.selectedTime,
-          packageType: bookingData.packageType,
-          mode: bookingData.mode,
-          notes: bookingData.notes,
-          amount: bookingData.packagePrice,
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+// helper inside BookingFlow.tsx (add near top)
+const makeIsoFromDateAndTime = (dateStr: string, timeStr: string) => {
+  const [time, meridiem] = timeStr.split(' ');
+  let [hh, mm] = time.split(':').map(Number);
+  if (meridiem === 'PM' && hh !== 12) hh += 12;
+  if (meridiem === 'AM' && hh === 12) hh = 0;
+  const [year, month, day] = dateStr.split('-').map(Number);
+  // create UTC time so backend receives consistent timestamp
+  const dt = new Date(Date.UTC(year, month - 1, day, hh, mm, 0));
+  return dt.toISOString();
+};
 
-      Alert.alert('Success!', 'Your booking has been confirmed. The consultant will contact you soon.', [
-        { text: 'OK', onPress: () => router.push('/dashboards/user/home') }
-      ]);
-    } catch (error) {
+// replace handleBookingConfirm with:
+const handleBookingConfirm = async () => {
+  try {
+    if (!bookingData.selectedDate || !bookingData.selectedTime) {
+      Alert.alert('Required', 'Please select date and time');
+      return;
+    }
+    const token = await AsyncStorage.getItem('userToken');
+    const startAt = makeIsoFromDateAndTime(bookingData.selectedDate!, bookingData.selectedTime!);
+    const endAt = new Date(new Date(startAt).getTime() + 30 * 60 * 1000).toISOString(); // 30 min
+
+    const payload = {
+      consultant: bookingData.consultantId, // backend expects `consultant`
+      startAt,
+      endAt,
+      title: `${bookingData.packageType} - ${bookingData.packageDuration}`,
+      notes: bookingData.notes,
+      mode: bookingData.mode,
+      price: bookingData.packagePrice,
+      location: bookingData.location,
+    };
+
+    const res = await axios.post(`${API_BASE_URL}/appointments`, payload, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    Alert.alert('Success!', 'Your booking has been confirmed. The consultant will contact you soon.', [
+      { text: 'OK', onPress: () => router.push('/dashboards/user/home') }
+    ]);
+  } catch (error: any) {
+    if (error.response?.status === 409) {
+      Alert.alert('Timeslot taken', 'The chosen slot was booked by someone else. Please pick another slot.');
+    } else {
       Alert.alert('Error', 'Failed to create booking. Please try again.');
     }
-  };
+  }
+};
+
 
   const renderProgressBar = () => (
     <View style={styles.progressContainer}>
