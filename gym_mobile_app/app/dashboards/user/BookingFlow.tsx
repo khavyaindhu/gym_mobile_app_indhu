@@ -32,6 +32,7 @@ const STEPS = [
   { id: 3, title: 'Details', icon: 'document-text' },
   { id: 4, title: 'Payment', icon: 'card' },
   { id: 5, title: 'Confirm', icon: 'checkmark-circle' },
+  { id: 6, title: 'Success', icon: 'checkmark-done-circle' },
 ];
 
 export default function BookingFlow() {
@@ -61,7 +62,8 @@ export default function BookingFlow() {
   // Date selection state
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
-
+  const [isBooking, setIsBooking] = useState(false);
+  
   // Generate next 14 days
   const generateDates = () => {
     const dates = [];
@@ -126,28 +128,88 @@ export default function BookingFlow() {
     ]).start();
   };
 
-  const handleNext = () => {
-    if (currentStep === 1) {
-      setCurrentStep(2);
-    } else if (currentStep === 2) {
-      if (!selectedDate || !selectedTime) {
-        Alert.alert('Required', 'Please select date and time');
-        return;
-      }
-      setBookingData({ ...bookingData, selectedDate, selectedTime });
-      setCurrentStep(3);
-    } else if (currentStep === 3) {
-      if (params.trainingMode === 'hybrid' && !bookingData.mode) {
-        Alert.alert('Required', 'Please select training mode');
-        return;
-      }
-      setCurrentStep(4);
-    } else if (currentStep === 4) {
-      setCurrentStep(5);
-    } else if (currentStep === 5) {
-      handleBookingConfirm();
+const handleNext = () => {
+  if (currentStep === 1) {
+    setCurrentStep(2);
+  } else if (currentStep === 2) {
+    if (!selectedDate || !selectedTime) {
+      Alert.alert('Required', 'Please select date and time');
+      return;
     }
-  };
+    setBookingData({ ...bookingData, selectedDate, selectedTime });
+    setCurrentStep(3);
+  } else if (currentStep === 3) {
+    if (params.trainingMode === 'hybrid' && !bookingData.mode) {
+      Alert.alert('Required', 'Please select training mode');
+      return;
+    }
+    setCurrentStep(4);
+  } else if (currentStep === 4) {
+    setCurrentStep(5);
+  } else if (currentStep === 5) {
+    handleBookingConfirm();
+  } else if (currentStep === 6) {  // Add this
+    router.push('/dashboards/user/home');
+  }
+};
+
+// Step 6: Success Screen
+const renderSuccess = () => (
+  <Animated.View style={[
+    styles.stepContainer,
+    { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }
+  ]}>
+    <View style={styles.successIconContainer}>
+      <View style={[styles.successCircle, { borderColor: '#10B981', backgroundColor: 'rgba(16, 185, 129, 0.2)' }]}>
+        <Ionicons name="checkmark-circle" size={80} color="#10B981" />
+      </View>
+    </View>
+
+    <Text style={styles.confirmTitle}>Booking Confirmed! 🎉</Text>
+    <Text style={styles.confirmSubtitle}>
+      Your consultation has been successfully booked
+    </Text>
+
+    <View style={styles.confirmationCard}>
+      <View style={styles.confirmRow}>
+        <Ionicons name="person-outline" size={20} color="#94A3B8" />
+        <View style={styles.confirmRowContent}>
+          <Text style={styles.confirmLabel}>Consultant</Text>
+          <Text style={styles.confirmValue}>{bookingData.consultantName}</Text>
+        </View>
+      </View>
+
+      <View style={styles.confirmRow}>
+        <Ionicons name="calendar-outline" size={20} color="#94A3B8" />
+        <View style={styles.confirmRowContent}>
+          <Text style={styles.confirmLabel}>Date & Time</Text>
+          <Text style={styles.confirmValue}>
+            {selectedDate && new Date(selectedDate).toLocaleDateString('en-US', { 
+              month: 'short', day: 'numeric', year: 'numeric' 
+            })} at {selectedTime}
+          </Text>
+        </View>
+      </View>
+
+      <View style={styles.confirmRowLast}>
+        <Ionicons name="mail-outline" size={20} color="#94A3B8" />
+        <View style={styles.confirmRowContent}>
+          <Text style={styles.confirmLabel}>Next Steps</Text>
+          <Text style={styles.confirmValue}>
+            You'll receive a confirmation email shortly. The consultant will contact you before the session.
+          </Text>
+        </View>
+      </View>
+    </View>
+
+    <View style={[styles.infoCard, { backgroundColor: 'rgba(16, 185, 129, 0.1)', borderColor: '#10B981' }]}>
+      <Ionicons name="information-circle" size={20} color="#10B981" />
+      <Text style={[styles.infoText, { color: '#6EE7B7' }]}>
+        You can view and manage your appointments from the "My Appointments" section in your dashboard.
+      </Text>
+    </View>
+  </Animated.View>
+);
 
   const handleBack = () => {
     if (currentStep > 1) {
@@ -169,19 +231,24 @@ const makeIsoFromDateAndTime = (dateStr: string, timeStr: string) => {
   return dt.toISOString();
 };
 
-// replace handleBookingConfirm with:
 const handleBookingConfirm = async () => {
+  // Prevent multiple clicks
+  if (isBooking) return;
+  
   try {
     if (!bookingData.selectedDate || !bookingData.selectedTime) {
       Alert.alert('Required', 'Please select date and time');
       return;
     }
+    
+    setIsBooking(true); // Start loading
+    
     const token = await AsyncStorage.getItem('userToken');
     const startAt = makeIsoFromDateAndTime(bookingData.selectedDate!, bookingData.selectedTime!);
-    const endAt = new Date(new Date(startAt).getTime() + 30 * 60 * 1000).toISOString(); // 30 min
+    const endAt = new Date(new Date(startAt).getTime() + 30 * 60 * 1000).toISOString();
 
     const payload = {
-      consultant: bookingData.consultantId, // backend expects `consultant`
+      consultant: bookingData.consultantId,
       startAt,
       endAt,
       title: `${bookingData.packageType} - ${bookingData.packageDuration}`,
@@ -191,22 +258,69 @@ const handleBookingConfirm = async () => {
       location: bookingData.location,
     };
 
+    console.log('Sending booking request:', payload);
+
     const res = await axios.post(`${API_BASE_URL}/appointments`, payload, {
       headers: { Authorization: `Bearer ${token}` },
     });
 
-    Alert.alert('Success!', 'Your booking has been confirmed. The consultant will contact you soon.', [
-      { text: 'OK', onPress: () => router.push('/dashboards/user/home') }
-    ]);
+    console.log('Booking successful:', res.data);
+    setIsBooking(false);
+    setCurrentStep(6);
+    
   } catch (error: any) {
-    if (error.response?.status === 409) {
-      Alert.alert('Timeslot taken', 'The chosen slot was booked by someone else. Please pick another slot.');
+    setIsBooking(false); // Stop loading on error
+    
+    const status = error.response?.status;
+    const message = error.response?.data?.message || 'An error occurred';
+    
+    console.log('Booking error - Status:', status);
+    console.log('Booking error - Message:', message);
+    console.log('Full error:', error.response?.data);
+    
+    if (status === 409) {
+      // Use setTimeout to ensure Alert appears after state update
+      setTimeout(() => {
+        Alert.alert(
+          '⚠️ Duplicate Booking',
+          'You already have an appointment booked for this time slot with this consultant.\n\nPlease choose a different date and time.',
+          [
+            { 
+              text: 'Choose Different Time', 
+              onPress: () => {
+                setSelectedDate(null);
+                setSelectedTime(null);
+                setCurrentStep(2);
+              },
+              style: 'default'
+            },
+            { 
+              text: 'Cancel', 
+              style: 'cancel' 
+            },
+          ],
+          { cancelable: false }
+        );
+      }, 100);
+    } else if (status === 400) {
+      setTimeout(() => {
+        Alert.alert('Invalid Booking', message, [{ text: 'OK' }]);
+      }, 100);
+    } else if (status === 404) {
+      setTimeout(() => {
+        Alert.alert(
+          'Consultant Not Found',
+          'The selected consultant is no longer available.',
+          [{ text: 'OK', onPress: () => router.back() }]
+        );
+      }, 100);
     } else {
-      Alert.alert('Error', 'Failed to create booking. Please try again.');
+      setTimeout(() => {
+        Alert.alert('Booking Failed', message || 'Please try again.', [{ text: 'OK' }]);
+      }, 100);
     }
   }
 };
-
 
   const renderProgressBar = () => (
     <View style={styles.progressContainer}>
@@ -591,25 +705,34 @@ const handleBookingConfirm = async () => {
           By confirming, you agree to our terms of service and cancellation policy
         </Text>
       </View>
+     
+      <View style={[styles.infoCard, { backgroundColor: 'rgba(245, 158, 11, 0.1)', borderColor: '#F59E0B', marginTop: 16 }]}>
+        <Ionicons name="warning-outline" size={20} color="#F59E0B" />
+        <Text style={[styles.infoText, { color: '#FCD34D' }]}>
+          Please ensure you don't have another appointment at this time. Duplicate bookings are not allowed.
+        </Text>
+      </View>
     </Animated.View>
   );
 
-  const renderStepContent = () => {
-    switch (currentStep) {
-      case 1:
-        return renderPackageConfirmation();
-      case 2:
-        return renderDateTimeSelection();
-      case 3:
-        return renderSessionDetails();
-      case 4:
-        return renderPayment();
-      case 5:
-        return renderConfirmation();
-      default:
-        return null;
-    }
-  };
+const renderStepContent = () => {
+  switch (currentStep) {
+    case 1:
+      return renderPackageConfirmation();
+    case 2:
+      return renderDateTimeSelection();
+    case 3:
+      return renderSessionDetails();
+    case 4:
+      return renderPayment();
+    case 5:
+      return renderConfirmation();
+    case 6:  // Add this
+      return renderSuccess();
+    default:
+      return null;
+  }
+};
 
   return (
     <SafeAreaView style={styles.container}>
@@ -643,20 +766,39 @@ const handleBookingConfirm = async () => {
 
       {/* Bottom Action Button */}
       <View style={styles.bottomBar}>
-        <TouchableOpacity style={styles.continueButton} onPress={handleNext}>
+        <TouchableOpacity 
+          style={[styles.continueButton, isBooking && styles.continueButtonDisabled]} 
+          onPress={handleNext}
+          disabled={isBooking}
+        >
           <LinearGradient colors={['#10B981', '#059669']} style={styles.continueGradient}>
-            <Text style={styles.continueButtonText}>
-              {currentStep === STEPS.length ? 'Confirm Booking' : 'Continue'}
-            </Text>
-            <Ionicons name="arrow-forward" size={20} color="#FFFFFF" />
+            {isBooking ? (
+              <>
+                <Text style={styles.continueButtonText}>Processing...</Text>
+                <Ionicons name="hourglass-outline" size={20} color="#FFFFFF" />
+              </>
+            ) : (
+              <>
+                <Text style={styles.continueButtonText}>
+                  {currentStep === 5 ? 'Confirm Booking' : 
+                  currentStep === 6 ? 'Go to Dashboard' : 'Continue'}
+                </Text>
+                <Ionicons name="arrow-forward" size={20} color="#FFFFFF" />
+              </>
+            )}
           </LinearGradient>
         </TouchableOpacity>
       </View>
+
+      
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+    continueButtonDisabled: {
+    opacity: 0.5,
+  },
   container: {
     flex: 1,
     backgroundColor: '#0F172A',
