@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 
 interface HeaderProps {
   title?: string;
@@ -15,6 +16,20 @@ export default function Header({
   showBackButton = false,
   onBackPress,
 }: HeaderProps) {
+  const router = useRouter();
+
+  const handleProfilePress = () => {
+    router.push('/dashboards/user/ProfileSettings');
+  };
+
+  const handleStatsPress = () => {
+    router.push('/dashboards/user/HealthAnalysis');
+  };
+
+    const handleWellBeingPress = () => {
+    router.push('/dashboards/user/MoodWellbeing');
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.leftSection}>
@@ -36,10 +51,10 @@ export default function Header({
       </View>
 
       <View style={styles.rightSection}>
-        <TouchableOpacity style={styles.iconButton}>
+        <TouchableOpacity style={styles.iconButton} onPress={handleStatsPress}>
           <Ionicons name="stats-chart" size={22} color="#fff" />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.iconButton}>
+        <TouchableOpacity style={styles.iconButton}  onPress={handleWellBeingPress}>
           <Ionicons name="globe-outline" size={22} color="#fff" />
         </TouchableOpacity>
         <TouchableOpacity style={styles.iconButton}>
@@ -54,7 +69,7 @@ export default function Header({
             <Text style={styles.badgeText}>3</Text>
           </View>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.profileButton}>
+        <TouchableOpacity style={styles.profileButton} onPress={handleProfilePress}>
           <Ionicons name="person" size={20} color="#0ea5e9" />
         </TouchableOpacity>
       </View>
