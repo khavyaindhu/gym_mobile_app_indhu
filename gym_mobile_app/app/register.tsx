@@ -86,17 +86,25 @@ export default function Register() {
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [role, setRole] = useState("user");
   const [consent, setConsent] = useState(false);
   const [privacyNoticeAccepted, setPrivacyNoticeAccepted] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const handleRegister = async () => {
     // Validation
-    if (!name || !email || !password) {
-      alert("Please fill in all required fields (Name, Email, Password)");
+    if (!name || !email || !password || !confirmPassword) {
+      alert("Please fill in all required fields");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      alert("Passwords do not match");
       return;
     }
 
@@ -240,15 +248,50 @@ export default function Register() {
 
           <View style={styles.inputContainer}>
             <Text style={styles.inputLabel}>Password *</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Create a secure password"
-              placeholderTextColor="#9CA3AF"
-              secureTextEntry
-              value={password}
-              onChangeText={setPassword}
-              editable={!isLoading}
-            />
+            <View style={styles.passwordContainer}>
+              <TextInput
+                style={styles.passwordInput}
+                placeholder="Create a secure password"
+                placeholderTextColor="#9CA3AF"
+                secureTextEntry={!showPassword}
+                value={password}
+                onChangeText={setPassword}
+                editable={!isLoading}
+              />
+              <TouchableOpacity 
+                style={styles.eyeIconButton}
+                onPress={() => setShowPassword(!showPassword)}
+                disabled={isLoading}
+              >
+                <Text style={styles.eyeIcon}>
+                  {showPassword ? '👁️' : '👁️‍🗨️'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <View style={styles.inputContainer}>
+            <Text style={styles.inputLabel}>Confirm Password *</Text>
+            <View style={styles.passwordContainer}>
+              <TextInput
+                style={styles.passwordInput}
+                placeholder="Re-enter your password"
+                placeholderTextColor="#9CA3AF"
+                secureTextEntry={!showConfirmPassword}
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                editable={!isLoading}
+              />
+              <TouchableOpacity 
+                style={styles.eyeIconButton}
+                onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                disabled={isLoading}
+              >
+                <Text style={styles.eyeIcon}>
+                  {showConfirmPassword ? '👁️' : '👁️‍🗨️'}
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
           <View style={styles.inputContainer}>
@@ -428,6 +471,33 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#F9FAFB',
     fontWeight: '500',
+  },
+  passwordContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#374151',
+    backgroundColor: '#111827',
+    borderRadius: 12,
+    position: 'relative',
+  },
+  passwordInput: {
+    flex: 1,
+    padding: 16,
+    fontSize: 16,
+    color: '#F9FAFB',
+    fontWeight: '500',
+  },
+  eyeIconButton: {
+    backgroundColor: 'transparent',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  eyeIcon: {
+    fontSize: 20,
+    color: '#9CA3AF',
   },
   roleCardsContainer: {
     flexDirection: 'row',
