@@ -300,9 +300,8 @@ export default function LogMeal() {
         <View style={styles.progressSection}>
           <View style={styles.calorieCard}>
             <Image 
-              source={{ uri: 'https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=800&q=80' }}
+              source={{ uri: 'https://images.unsplash.com/photo-1547592180-85f173990554?w=800&q=80' }}
               style={styles.calorieCardBackground}
-              blurRadius={2}
             />
             <View style={styles.calorieCardOverlay} />
             
@@ -643,7 +642,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(16, 185, 129, 0.85)',
+    backgroundColor: 'rgba(0, 0, 0, 0.35)',
   },
   calorieCardContent: {
     padding: 24,
@@ -822,7 +821,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(16, 185, 129, 0.80)',
+    backgroundColor: 'rgba(0, 0, 0, 0.35)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
