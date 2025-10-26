@@ -571,7 +571,10 @@ useEffect(() => {
       <Text style={styles.actionText}>Log Water</Text>
     </TouchableOpacity>
 
-    <TouchableOpacity style={styles.actionButton}>
+    <TouchableOpacity 
+      style={styles.actionButton}
+      onPress={() => router.push('/dashboards/user/LogMeal')}  // Add this line
+    >
       <View style={[styles.actionIconContainer, { backgroundColor: 'rgba(16, 185, 129, 0.15)' }]}>
         <Utensils size={24} color="#10B981" strokeWidth={2} />
       </View>
