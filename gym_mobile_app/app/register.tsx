@@ -261,13 +261,15 @@ export default function Register() {
                 editable={!isLoading}
               />
               <TouchableOpacity 
-                style={styles.eyeIconButton}
+                style={styles.eyeButton}
                 onPress={() => setShowPassword(!showPassword)}
                 disabled={isLoading}
               >
-                <Text style={styles.eyeIcon}>
-                  {showPassword ? '👁️' : '👁️‍🗨️'}
-                </Text>
+                {showPassword ? (
+                  <EyeSlashIcon size={24} color="#9CA3AF" />
+                ) : (
+                  <EyeIcon size={24} color="#9CA3AF" />
+                )}
               </TouchableOpacity>
             </View>
           </View>
@@ -285,13 +287,15 @@ export default function Register() {
                 editable={!isLoading}
               />
               <TouchableOpacity 
-                style={styles.eyeIconButton}
+                style={styles.eyeButton}
                 onPress={() => setShowConfirmPassword(!showConfirmPassword)}
                 disabled={isLoading}
               >
-                <Text style={styles.eyeIcon}>
-                  {showConfirmPassword ? '👁️' : '👁️‍🗨️'}
-                </Text>
+                {showConfirmPassword ? (
+                  <EyeSlashIcon size={24} color="#9CA3AF" />
+                ) : (
+                  <EyeIcon size={24} color="#9CA3AF" />
+                )}
               </TouchableOpacity>
             </View>
           </View>
@@ -424,6 +428,20 @@ export default function Register() {
 }
 
 const styles = StyleSheet.create({
+  passwordContainer: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  borderWidth: 1.5,
+  borderColor: '#374151',
+  backgroundColor: '#111827',
+  borderRadius: 12,
+  paddingRight: 12,
+},
+eyeButton: {
+  padding: 8,
+  justifyContent: 'center',
+  alignItems: 'center',
+},
   container: {
     flex: 1,
     backgroundColor: '#111827',
