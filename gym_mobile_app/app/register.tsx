@@ -12,6 +12,8 @@ import {
 import { useRouter } from "expo-router";
 import { useState, useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Ionicons } from '@expo/vector-icons';
+import { EyeIcon, EyeSlashIcon } from "react-native-heroicons/outline";
 
 // Toast Component Props Interface
 interface ToastProps {
@@ -307,7 +309,11 @@ export default function Register() {
               >
                 <View style={styles.roleCardContent}>
                   <View style={[styles.roleIcon, role === "user" && styles.activeRoleIcon]}>
-                    <Text style={[styles.roleIconText, role === "user" && styles.activeRoleIconText]}>👤</Text>
+                    <Ionicons 
+                      name="person-outline" 
+                      size={28} 
+                      color={role === "user" ? "#FFFFFF" : "#9CA3AF"} 
+                    />
                   </View>
                   <Text style={[styles.roleCardTitle, role === "user" && styles.activeRoleCardTitle]}>
                     User
@@ -333,7 +339,11 @@ export default function Register() {
               >
                 <View style={styles.roleCardContent}>
                   <View style={[styles.roleIcon, role === "consultant" && styles.activeRoleIcon]}>
-                    <Text style={[styles.roleIconText, role === "consultant" && styles.activeRoleIconText]}>💪</Text>
+                    <Ionicons 
+                      name="fitness-outline" 
+                      size={28} 
+                      color={role === "consultant" ? "#FFFFFF" : "#9CA3AF"} 
+                    />
                   </View>
                   <Text style={[styles.roleCardTitle, role === "consultant" && styles.activeRoleCardTitle]}>
                     Consultant
@@ -532,12 +542,6 @@ const styles = StyleSheet.create({
   },
   activeRoleIcon: {
     backgroundColor: '#10B981',
-  },
-  roleIconText: {
-    fontSize: 24,
-  },
-  activeRoleIconText: {
-    fontSize: 24,
   },
   roleCardTitle: {
     fontSize: 16,
