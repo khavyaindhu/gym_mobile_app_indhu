@@ -854,6 +854,7 @@ scrollContainer: {
     padding: 8,
     justifyContent: 'center',
     alignItems: 'center',
+    marginRight: 6,
   },
   passwordInput: {
     flex: 1,
