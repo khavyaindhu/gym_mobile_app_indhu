@@ -52,19 +52,19 @@ export default function Header({
 
       <View style={styles.rightSection}>
         <TouchableOpacity style={styles.iconButton} onPress={handleStatsPress}>
-          <Ionicons name="bar-chart-outline" size={22} color="#fff" />
+          <Ionicons name="bar-chart-outline" size={18} color="#fff" />
         </TouchableOpacity>
         <TouchableOpacity style={styles.iconButton} onPress={handleWellBeingPress}>
-          <Ionicons name="fitness-outline" size={22} color="#fff" />
+          <Ionicons name="fitness-outline" size={18} color="#fff" />
         </TouchableOpacity>
         <TouchableOpacity style={styles.iconButton}>
-          <Ionicons name="watch-outline" size={22} color="#fff" />
+          <Ionicons name="watch-outline" size={18} color="#fff" />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.iconButton}>
-          <Ionicons name="people-outline" size={22} color="#fff" />
-        </TouchableOpacity>
+        {/* <TouchableOpacity style={styles.iconButton}>
+          <Ionicons name="people-outline" size={20} color="#fff" />
+        </TouchableOpacity> */}
         <TouchableOpacity style={styles.notificationButton}>
-          <Ionicons name="notifications-outline" size={22} color="#fff" />
+          <Ionicons name="notifications-outline" size={18} color="#fff" />
           <View style={styles.badge}>
             <Text style={styles.badgeText}>3</Text>
           </View>
@@ -128,7 +128,7 @@ const styles = StyleSheet.create({
   rightSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 4,
   },
   iconButton: {
     padding: 8,
