@@ -105,7 +105,7 @@ export default function HomeSummary() {
     setRecommendedVideo(video);
   }, []);
 useEffect(() => {
-  const blogs = getRandomBlogPosts(2);
+  const blogs = getRandomBlogPosts(1);
   setFeaturedBlogs(blogs);
 }, []);
 
