@@ -129,7 +129,7 @@ export default function UserDashboard() {
           ),
         }}
       />
-      <Tab.Screen 
+      {/* <Tab.Screen 
         name="Appointments" 
         component={Appointments}
         options={{
@@ -142,7 +142,7 @@ export default function UserDashboard() {
             />
           ),
         }}
-      />
+      /> */}
       <Tab.Screen 
         name="Shop" 
         component={Shop}
