@@ -257,22 +257,22 @@ export default function Shop() {
     <SafeAreaView style={styles.container}>
       <StatusBar style="light" />
       
-      {/* Header */}
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.title}>Fitness Shop</Text>
-          <Text style={styles.subtitle}>Everything you need for your fitness journey</Text>
-        </View>
-        <TouchableOpacity style={styles.cartButton}>
-          <ShoppingCartIcon size={24} color="#FFFFFF" />
-          <View style={styles.cartBadge}>
-            <Text style={styles.cartBadgeText}>3</Text>
-          </View>
-        </TouchableOpacity>
-      </View>
-
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContainer}>
         
+        {/* Header - Now inside ScrollView */}
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.title}>Fitness Shop</Text>
+            <Text style={styles.subtitle}>Everything you need for your fitness journey</Text>
+          </View>
+          <TouchableOpacity style={styles.cartButton}>
+            <ShoppingCartIcon size={24} color="#FFFFFF" />
+            <View style={styles.cartBadge}>
+              <Text style={styles.cartBadgeText}>3</Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+
         {/* Featured Products */}
         {featuredProducts.length > 0 && (
           <View style={styles.section}>
@@ -345,6 +345,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#0F172A',
   },
+  scrollContainer: {
+    paddingBottom: 90, // Added padding for footer
+  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -384,9 +387,6 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 10,
     fontWeight: '600',
-  },
-  scrollContainer: {
-    paddingBottom: 20,
   },
   section: {
     marginBottom: 24,
