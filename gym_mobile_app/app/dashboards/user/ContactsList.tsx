@@ -68,8 +68,8 @@ export default function ContactsList({ contacts, onContactSelect }: ContactsList
     </TouchableOpacity>
   );
 
-  return (
-    <SafeAreaView style={styles.container}>
+  const ListHeader = () => (
+    <>
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Messages</Text>
@@ -86,20 +86,25 @@ export default function ContactsList({ contacts, onContactSelect }: ContactsList
           onChangeText={setSearchQuery}
         />
       </View>
+    </>
+  );
 
-      {/* Contacts List */}
-      {filteredContacts.length > 0 ? (
-        <FlatList
-          data={filteredContacts}
-          renderItem={renderContact}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContent}
-        />
-      ) : (
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>No contacts found</Text>
-        </View>
-      )}
+  const ListEmpty = () => (
+    <View style={styles.emptyContainer}>
+      <Text style={styles.emptyText}>No contacts found</Text>
+    </View>
+  );
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <FlatList
+        data={filteredContacts}
+        renderItem={renderContact}
+        keyExtractor={(item) => item.id}
+        ListHeaderComponent={ListHeader}
+        ListEmptyComponent={ListEmpty}
+        contentContainerStyle={styles.listContent}
+      />
     </SafeAreaView>
   );
 }
@@ -141,7 +146,7 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
   listContent: {
-    paddingBottom: 16,
+    flexGrow: 1,
   },
   contactItem: {
     flexDirection: 'row',
