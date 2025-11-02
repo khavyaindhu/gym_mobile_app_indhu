@@ -14,7 +14,7 @@ import {
   ChartPieIcon as ChartPieIconSolid
 } from 'react-native-heroicons/solid';
 
-// Import your screens - adjusted paths for components folder
+// Import your screens
 import HomeSummary from '../app/dashboards/user/HomeSummary';
 import ProgressOverview from '../app/dashboards/user/ProgressOverview';
 import StatsOverview from '../app/dashboards/user/StatsOverview';
@@ -63,23 +63,11 @@ export default function FooterNavigation() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: { 
-          position: 'absolute',
-          bottom: 0,
-          left: 0,
-          right: 0,
           backgroundColor: '#111827',
           borderTopWidth: 0,
           height: 70,
           paddingTop: 8,
           paddingBottom: 8,
-          elevation: 8,
-          shadowColor: '#000',
-          shadowOffset: {
-            width: 0,
-            height: -2,
-          },
-          shadowOpacity: 0.25,
-          shadowRadius: 3.84,
         },
         tabBarActiveTintColor: '#10B981',
         tabBarInactiveTintColor: '#9CA3AF',
