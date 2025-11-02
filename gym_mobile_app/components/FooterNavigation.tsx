@@ -5,13 +5,15 @@ import {
   HomeIcon, 
   UserGroupIcon, 
   ShoppingBagIcon, 
-  ChartPieIcon
+  ChartPieIcon,
+  ChatBubbleLeftRightIcon
 } from 'react-native-heroicons/outline';
 import { 
   HomeIcon as HomeIconSolid, 
   UserGroupIcon as UserGroupIconSolid, 
   ShoppingBagIcon as ShoppingBagIconSolid, 
-  ChartPieIcon as ChartPieIconSolid
+  ChartPieIcon as ChartPieIconSolid,
+  ChatBubbleLeftRightIcon as ChatBubbleLeftRightIconSolid
 } from 'react-native-heroicons/solid';
 
 // Import your screens
@@ -21,10 +23,10 @@ import StatsOverview from '../app/dashboards/user/StatsOverview';
 import MyPlans from '../app/dashboards/user/MyPlans';
 import Consultants from '../app/dashboards/user/Consultants';
 import Shop from '../app/dashboards/user/Shop';
+import Messages from '../app/dashboards/user/Messages';
 
 const Tab = createBottomTabNavigator();
 
-// Props type for custom tab icon
 type TabBarIconProps = {
   focused: boolean;
   icon: React.ComponentType<{ size?: number; color?: string }>;
@@ -41,7 +43,6 @@ const TabBarIcon: React.FC<TabBarIconProps> = ({ focused, icon: Icon, solidIcon:
   );
 };
 
-// Fitness Tab Group - nested navigation
 function FitnessTabGroup() {
   return (
     <Tab.Navigator
@@ -102,7 +103,7 @@ export default function FooterNavigation() {
         }}
       />
       <Tab.Screen 
-        name="Consultants" 
+        name="Sessions" 
         component={Consultants}
         options={{
           tabBarIcon: ({ focused }) => (
@@ -124,6 +125,20 @@ export default function FooterNavigation() {
               focused={focused} 
               icon={ShoppingBagIcon} 
               solidIcon={ShoppingBagIconSolid} 
+              label="" 
+            />
+          ),
+        }}
+      />
+      <Tab.Screen 
+        name="Messages" 
+        component={Messages}
+        options={{
+          tabBarIcon: ({ focused }) => (
+            <TabBarIcon 
+              focused={focused} 
+              icon={ChatBubbleLeftRightIcon} 
+              solidIcon={ChatBubbleLeftRightIconSolid} 
               label="" 
             />
           ),
