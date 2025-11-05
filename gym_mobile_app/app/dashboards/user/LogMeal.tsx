@@ -49,6 +49,9 @@ interface NutritionItem {
   fiber_g: number;
   sugar_g: number;
   sodium_mg: number;
+  cholesterol_mg?: number;
+  saturated_fat_g?: number;
+  potassium_mg?: number;
 }
 
 export default function LogMeal() {
@@ -57,15 +60,13 @@ export default function LogMeal() {
   const [dailyGoal, setDailyGoal] = useState(2000);
   const [mealHistory, setMealHistory] = useState<MealEntry[]>([]);
   const [selectedMealType, setSelectedMealType] = useState<'breakfast' | 'lunch' | 'dinner' | 'snack'>('breakfast');
-  const [foodName, setFoodName] = useState('');
-  const [calories, setCalories] = useState('');
-  const [protein, setProtein] = useState('');
-  const [carbs, setCarbs] = useState('');
-  const [fats, setFats] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSearching, setIsSearching] = useState(false);
   const [isAnalyzingImage, setIsAnalyzingImage] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<NutritionItem[]>([]);
+  const [selectedItems, setSelectedItems] = useState<NutritionItem[]>([]);
 
   const currentDate = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
@@ -147,49 +148,19 @@ export default function LogMeal() {
 
       if (response.data.items && response.data.items.length > 0) {
         const items: NutritionItem[] = response.data.items;
-        
-        if (items.length === 1) {
-          // Single item - auto-fill the form
-          const item = items[0];
-          setFoodName(item.name);
-          setCalories(Math.round(item.calories).toString());
-          setProtein(Math.round(item.protein_g).toString());
-          setCarbs(Math.round(item.carbohydrates_total_g).toString());
-          setFats(Math.round(item.fat_total_g).toString());
-          setSearchQuery('');
-          Alert.alert('Success', `Found nutrition info for ${item.name} (${item.serving_size_g}g serving)`);
-        } else {
-          // Multiple items - show selection
-          const itemsList = items.map((item, index) => 
-            `${index + 1}. ${item.name}: ${Math.round(item.calories)} cal, ${Math.round(item.protein_g)}g protein`
-          ).join('\n');
-          
-          Alert.alert(
-            'Multiple Items Found',
-            `Found ${items.length} items:\n\n${itemsList}\n\nUsing the first item. You can search again for specific items.`,
-            [
-              {
-                text: 'Use First Item',
-                onPress: () => {
-                  const item = items[0];
-                  setFoodName(item.name);
-                  setCalories(Math.round(item.calories).toString());
-                  setProtein(Math.round(item.protein_g).toString());
-                  setCarbs(Math.round(item.carbohydrates_total_g).toString());
-                  setFats(Math.round(item.fat_total_g).toString());
-                  setSearchQuery('');
-                }
-              },
-              { text: 'Cancel', style: 'cancel' }
-            ]
-          );
-        }
+        setSearchResults(items);
+        setSelectedItems(items); // Auto-select all items
+        Alert.alert('Success', `Found ${items.length} item(s). Review the details below.`);
       } else {
         Alert.alert('Not Found', 'No nutrition information found for this food item. Try a different query.');
+        setSearchResults([]);
+        setSelectedItems([]);
       }
     } catch (error: any) {
       console.error('Error searching nutrition:', error);
       Alert.alert('Search Error', 'Failed to fetch nutrition data. Please try again.');
+      setSearchResults([]);
+      setSelectedItems([]);
     } finally {
       setIsSearching(false);
     }
@@ -260,26 +231,13 @@ export default function LogMeal() {
 
       if (response.data.items && response.data.items.length > 0) {
         const items: NutritionItem[] = response.data.items;
+        setSearchResults(items);
+        setSelectedItems(items); // Auto-select all items
         
-        // Calculate totals from all detected items
-        const totalNutrition = items.reduce((acc, item) => ({
-          calories: acc.calories + item.calories,
-          protein: acc.protein + item.protein_g,
-          carbs: acc.carbs + item.carbohydrates_total_g,
-          fats: acc.fats + item.fat_total_g,
-        }), { calories: 0, protein: 0, carbs: 0, fats: 0 });
-
-        const foodNames = items.map(item => item.name).join(', ');
-        
-        setFoodName(foodNames);
-        setCalories(Math.round(totalNutrition.calories).toString());
-        setProtein(Math.round(totalNutrition.protein).toString());
-        setCarbs(Math.round(totalNutrition.carbs).toString());
-        setFats(Math.round(totalNutrition.fats).toString());
-
+        const totalCals = items.reduce((sum, item) => sum + item.calories, 0);
         Alert.alert(
           'Image Analyzed!',
-          `Detected: ${foodNames}\n\nTotal: ${Math.round(totalNutrition.calories)} calories`
+          `Detected ${items.length} item(s). Total: ${Math.round(totalCals)} calories`
         );
       } else {
         Alert.alert(
@@ -394,40 +352,80 @@ export default function LogMeal() {
     }
   };
 
-  const addMeal = async () => {
-    if (!foodName.trim() || !calories) {
-      Alert.alert('Required Fields', 'Please enter at least food name and calories.');
+  const saveSelectedItems = async () => {
+    if (selectedItems.length === 0) {
+      Alert.alert('No Items', 'Please search and select food items to save.');
       return;
     }
 
-    const mealData = {
-      mealType: selectedMealType,
-      foodName: foodName.trim(),
-      calories: parseInt(calories) || 0,
-      protein: parseInt(protein) || 0,
-      carbs: parseInt(carbs) || 0,
-      fats: parseInt(fats) || 0,
-    };
-
-    const success = await logMealToAPI(mealData);
+    setIsSaving(true);
     
-    if (!success) {
-      Alert.alert(
-        'Connection Error',
-        'Failed to sync with server. Do you want to track locally?',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { 
-            text: 'Track Locally', 
-            onPress: () => addMealLocally(mealData)
-          }
-        ]
-      );
-      return;
-    }
+    try {
+      // Calculate totals
+      const totalNutrition = selectedItems.reduce((acc, item) => ({
+        calories: acc.calories + item.calories,
+        protein: acc.protein + item.protein_g,
+        carbs: acc.carbs + item.carbohydrates_total_g,
+        fats: acc.fats + item.fat_total_g,
+      }), { calories: 0, protein: 0, carbs: 0, fats: 0 });
 
-    addMealLocally(mealData);
-    clearForm();
+      const foodNames = selectedItems.map(item => item.name).join(', ');
+
+      const mealData = {
+        mealType: selectedMealType,
+        foodName: foodNames,
+        calories: Math.round(totalNutrition.calories),
+        protein: Math.round(totalNutrition.protein),
+        carbs: Math.round(totalNutrition.carbs),
+        fats: Math.round(totalNutrition.fats),
+      };
+
+      const success = await logMealToAPI(mealData);
+      
+      if (!success) {
+        Alert.alert(
+          'Connection Error',
+          'Failed to sync with server. Do you want to track locally?',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { 
+              text: 'Track Locally', 
+              onPress: () => {
+                addMealLocally(mealData);
+                clearSearchResults();
+              }
+            }
+          ]
+        );
+        return;
+      }
+
+      addMealLocally(mealData);
+      clearSearchResults();
+      Alert.alert('Success', 'Meal logged successfully!');
+    } catch (error) {
+      console.error('Error saving items:', error);
+      Alert.alert('Error', 'Failed to save meal. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const clearSearchResults = () => {
+    setSearchResults([]);
+    setSelectedItems([]);
+    setSearchQuery('');
+  };
+
+  const toggleItemSelection = (item: NutritionItem) => {
+    setSelectedItems(prev => {
+      const isSelected = prev.some(i => i.name === item.name);
+      if (isSelected) {
+        return prev.filter(i => i.name !== item.name);
+      } else {
+        return [...prev, item];
+      }
+    });
   };
 
   const addMealLocally = (mealData: Omit<MealEntry, 'id' | 'time'>) => {
@@ -451,15 +449,6 @@ export default function LogMeal() {
         [{ text: "Great!", style: "default" }]
       );
     }
-  };
-
-  const clearForm = () => {
-    setFoodName('');
-    setCalories('');
-    setProtein('');
-    setCarbs('');
-    setFats('');
-    setSearchQuery('');
   };
 
   const removeMealEntry = (id: string) => {
@@ -628,123 +617,145 @@ export default function LogMeal() {
           </Text>
         </View>
 
-        {/* Meal Type Selection */}
-        <View style={styles.mealTypeSection}>
-          <Text style={styles.sectionTitle}>Select Meal Type</Text>
-          <ScrollView 
-            horizontal 
-            showsHorizontalScrollIndicator={false}
-            style={styles.mealTypeScroll}
-          >
-            {mealTypes.map((meal) => {
-              const IconComponent = meal.icon;
-              const isSelected = selectedMealType === meal.value;
-              return (
-                <TouchableOpacity
-                  key={meal.value}
-                  style={[
-                    styles.mealTypeButton,
-                    isSelected && styles.mealTypeButtonSelected
-                  ]}
-                  onPress={() => setSelectedMealType(meal.value)}
-                >
-                  <View style={[
-                    styles.mealTypeIconContainer,
-                    { backgroundColor: isSelected ? meal.color : '#374151' }
-                  ]}>
-                    <IconComponent size={24} color="#FFFFFF" strokeWidth={2.5} />
-                  </View>
-                  <Text style={[
-                    styles.mealTypeLabel,
-                    isSelected && styles.mealTypeLabelSelected
-                  ]}>
-                    {meal.label}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-        </View>
+        {/* Nutrition Results Display */}
+        {searchResults.length > 0 && (
+          <View style={styles.resultsSection}>
+            <View style={styles.resultsSectionHeader}>
+              <Text style={styles.sectionTitle}>Nutrition Information</Text>
+              <TouchableOpacity onPress={clearSearchResults}>
+                <Text style={styles.clearButton}>Clear</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <ScrollView style={styles.resultsContainer}>
+              {searchResults.map((item, index) => {
+                const isSelected = selectedItems.some(i => i.name === item.name);
+                return (
+                  <TouchableOpacity
+                    key={index}
+                    style={[styles.nutritionCard, isSelected && styles.nutritionCardSelected]}
+                    onPress={() => toggleItemSelection(item)}
+                  >
+                    <View style={styles.nutritionHeader}>
+                      <Text style={styles.nutritionName}>{item.name}</Text>
+                      <View style={styles.checkboxContainer}>
+                        {isSelected && (
+                          <Ionicons name="checkmark-circle" size={24} color="#10B981" />
+                        )}
+                        {!isSelected && (
+                          <Ionicons name="ellipse-outline" size={24} color="#64748B" />
+                        )}
+                      </View>
+                    </View>
+                    
+                    <Text style={styles.servingSize}>
+                      Serving: {Math.round(item.serving_size_g)}g
+                    </Text>
+                    
+                    <View style={styles.nutritionGrid}>
+                      <View style={styles.nutritionItem}>
+                        <Text style={styles.nutritionValue}>{Math.round(item.calories)}</Text>
+                        <Text style={styles.nutritionLabel}>Calories</Text>
+                      </View>
+                      <View style={styles.nutritionItem}>
+                        <Text style={styles.nutritionValue}>{item.protein_g.toFixed(1)}g</Text>
+                        <Text style={styles.nutritionLabel}>Protein</Text>
+                      </View>
+                      <View style={styles.nutritionItem}>
+                        <Text style={styles.nutritionValue}>{item.carbohydrates_total_g.toFixed(1)}g</Text>
+                        <Text style={styles.nutritionLabel}>Carbs</Text>
+                      </View>
+                      <View style={styles.nutritionItem}>
+                        <Text style={styles.nutritionValue}>{item.fat_total_g.toFixed(1)}g</Text>
+                        <Text style={styles.nutritionLabel}>Fat</Text>
+                      </View>
+                    </View>
 
-        {/* Add Meal Form */}
-        <View style={styles.formSection}>
-          <Text style={styles.sectionTitle}>Log Your Meal</Text>
-          <View style={styles.formCard}>
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Food Name *</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="e.g., Grilled Chicken Salad"
-                placeholderTextColor="#64748B"
-                value={foodName}
-                onChangeText={setFoodName}
-              />
+                    <View style={styles.additionalNutrition}>
+                      <View style={styles.nutritionRow}>
+                        <Text style={styles.nutritionRowLabel}>Fiber</Text>
+                        <Text style={styles.nutritionRowValue}>{item.fiber_g.toFixed(1)}g</Text>
+                      </View>
+                      <View style={styles.nutritionRow}>
+                        <Text style={styles.nutritionRowLabel}>Sugar</Text>
+                        <Text style={styles.nutritionRowValue}>{item.sugar_g.toFixed(1)}g</Text>
+                      </View>
+                      <View style={styles.nutritionRow}>
+                        <Text style={styles.nutritionRowLabel}>Sodium</Text>
+                        <Text style={styles.nutritionRowValue}>{Math.round(item.sodium_mg)}mg</Text>
+                      </View>
+                      {item.cholesterol_mg !== undefined && (
+                        <View style={styles.nutritionRow}>
+                          <Text style={styles.nutritionRowLabel}>Cholesterol</Text>
+                          <Text style={styles.nutritionRowValue}>{Math.round(item.cholesterol_mg)}mg</Text>
+                        </View>
+                      )}
+                      {item.saturated_fat_g !== undefined && (
+                        <View style={styles.nutritionRow}>
+                          <Text style={styles.nutritionRowLabel}>Saturated Fat</Text>
+                          <Text style={styles.nutritionRowValue}>{item.saturated_fat_g.toFixed(1)}g</Text>
+                        </View>
+                      )}
+                      {item.potassium_mg !== undefined && (
+                        <View style={styles.nutritionRow}>
+                          <Text style={styles.nutritionRowLabel}>Potassium</Text>
+                          <Text style={styles.nutritionRowValue}>{Math.round(item.potassium_mg)}mg</Text>
+                        </View>
+                      )}
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+
+            {/* Meal Type Selection (Only when results exist) */}
+            <View style={styles.mealTypeCompactSection}>
+              <Text style={styles.compactLabel}>Select Meal Type:</Text>
+              <View style={styles.mealTypeCompact}>
+                {mealTypes.map((meal) => {
+                  const IconComponent = meal.icon;
+                  const isSelected = selectedMealType === meal.value;
+                  return (
+                    <TouchableOpacity
+                      key={meal.value}
+                      style={[
+                        styles.mealTypeCompactButton,
+                        isSelected && { backgroundColor: meal.color }
+                      ]}
+                      onPress={() => setSelectedMealType(meal.value)}
+                    >
+                      <IconComponent size={20} color="#FFFFFF" strokeWidth={2.5} />
+                      <Text style={styles.mealTypeCompactLabel}>{meal.label}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
             </View>
 
-            <View style={styles.inputRow}>
-              <View style={[styles.inputGroup, { flex: 1 }]}>
-                <Text style={styles.inputLabel}>Calories *</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="0"
-                  placeholderTextColor="#64748B"
-                  value={calories}
-                  onChangeText={setCalories}
-                  keyboardType="numeric"
-                />
-              </View>
-              <View style={[styles.inputGroup, { flex: 1, marginLeft: 12 }]}>
-                <Text style={styles.inputLabel}>Protein (g)</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="0"
-                  placeholderTextColor="#64748B"
-                  value={protein}
-                  onChangeText={setProtein}
-                  keyboardType="numeric"
-                />
-              </View>
-            </View>
-
-            <View style={styles.inputRow}>
-              <View style={[styles.inputGroup, { flex: 1 }]}>
-                <Text style={styles.inputLabel}>Carbs (g)</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="0"
-                  placeholderTextColor="#64748B"
-                  value={carbs}
-                  onChangeText={setCarbs}
-                  keyboardType="numeric"
-                />
-              </View>
-              <View style={[styles.inputGroup, { flex: 1, marginLeft: 12 }]}>
-                <Text style={styles.inputLabel}>Fats (g)</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="0"
-                  placeholderTextColor="#64748B"
-                  value={fats}
-                  onChangeText={setFats}
-                  keyboardType="numeric"
-                />
-              </View>
-            </View>
-
+            {/* Save Button */}
             <TouchableOpacity 
-              style={styles.addMealButton}
-              onPress={addMeal}
+              style={styles.saveButton}
+              onPress={saveSelectedItems}
+              disabled={isSaving || selectedItems.length === 0}
             >
               <LinearGradient
-                colors={['#10B981', '#059669']}
-                style={styles.addButtonGradient}
+                colors={selectedItems.length > 0 ? ['#10B981', '#059669'] : ['#64748B', '#475569']}
+                style={styles.saveButtonGradient}
               >
-                <Ionicons name="add-circle" size={24} color="#FFFFFF" />
-                <Text style={styles.addButtonText}>Log Meal</Text>
+                {isSaving ? (
+                  <ActivityIndicator color="#FFFFFF" size="small" />
+                ) : (
+                  <>
+                    <Ionicons name="save" size={24} color="#FFFFFF" />
+                    <Text style={styles.saveButtonText}>
+                      Save to Meal Log ({selectedItems.length})
+                    </Text>
+                  </>
+                )}
               </LinearGradient>
             </TouchableOpacity>
           </View>
-        </View>
+        )}
 
         {/* Today's Meals History */}
         <View style={styles.historySection}>
@@ -1034,92 +1045,136 @@ const styles = StyleSheet.create({
     marginTop: 12,
     fontStyle: 'italic',
   },
-  mealTypeSection: {
+  resultsSection: {
     marginBottom: 24,
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#FFFFFF',
+  resultsSectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 16,
   },
-  mealTypeScroll: {
-    flexDirection: 'row',
+  clearButton: {
+    fontSize: 14,
+    color: '#EF4444',
+    fontWeight: '600',
   },
-  mealTypeButton: {
-    alignItems: 'center',
-    marginRight: 16,
-    paddingVertical: 12,
-    paddingHorizontal: 20,
+  resultsContainer: {
+    maxHeight: 400,
+  },
+  nutritionCard: {
     backgroundColor: '#1E293B',
     borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
     borderWidth: 2,
-    borderColor: '#374151',
+    borderColor: '#334155',
   },
-  mealTypeButtonSelected: {
+  nutritionCardSelected: {
     borderColor: '#10B981',
-    backgroundColor: '#065F46',
+    backgroundColor: '#064E3B',
   },
-  mealTypeIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+  nutritionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    justifyContent: 'center',
     marginBottom: 8,
   },
-  mealTypeLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#94A3B8',
-  },
-  mealTypeLabelSelected: {
+  nutritionName: {
+    fontSize: 18,
+    fontWeight: '700',
     color: '#FFFFFF',
+    flex: 1,
   },
-  formSection: {
-    marginBottom: 32,
+  checkboxContainer: {
+    marginLeft: 12,
   },
-  formCard: {
-    backgroundColor: '#1E293B',
-    borderRadius: 16,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: '#374151',
-  },
-  inputGroup: {
+  servingSize: {
+    fontSize: 13,
+    color: '#94A3B8',
     marginBottom: 16,
   },
-  inputLabel: {
+  nutritionGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  nutritionItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  nutritionValue: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 4,
+  },
+  nutritionLabel: {
+    fontSize: 12,
+    color: '#94A3B8',
+  },
+  additionalNutrition: {
+    borderTopWidth: 1,
+    borderTopColor: '#334155',
+    paddingTop: 12,
+    gap: 8,
+  },
+  nutritionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 4,
+  },
+  nutritionRowLabel: {
+    fontSize: 14,
+    color: '#CBD5E1',
+  },
+  nutritionRowValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  mealTypeCompactSection: {
+    marginTop: 16,
+    marginBottom: 16,
+  },
+  compactLabel: {
     fontSize: 14,
     fontWeight: '600',
     color: '#CBD5E1',
-    marginBottom: 8,
+    marginBottom: 12,
   },
-  input: {
-    backgroundColor: '#0F172A',
-    borderWidth: 1,
-    borderColor: '#334155',
+  mealTypeCompact: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  mealTypeCompactButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: '#374151',
     borderRadius: 12,
-    padding: 14,
-    fontSize: 16,
+    gap: 8,
+  },
+  mealTypeCompactLabel: {
+    fontSize: 13,
+    fontWeight: '600',
     color: '#FFFFFF',
   },
-  inputRow: {
-    flexDirection: 'row',
-  },
-  addMealButton: {
+  saveButton: {
     borderRadius: 12,
     overflow: 'hidden',
     marginTop: 8,
   },
-  addButtonGradient: {
+  saveButtonGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 16,
-    gap: 8,
+    gap: 12,
   },
-  addButtonText: {
+  saveButtonText: {
     fontSize: 16,
     fontWeight: '600',
     color: '#FFFFFF',
@@ -1131,6 +1186,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#FFFFFF',
     marginBottom: 16,
   },
   historyCount: {
