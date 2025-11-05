@@ -1,15 +1,18 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Alert, Image, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Alert, Image, TextInput, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Utensils, Coffee, Pizza, Apple, Moon, Drumstick } from 'lucide-react-native';
+import { Utensils, Coffee, Pizza, Apple, Moon, Drumstick, Camera, Search } from 'lucide-react-native';
 import { useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
+import * as ImagePicker from 'expo-image-picker';
 
 const API_BASE_URL = 'https://gym-backend-20dr.onrender.com/api';
+const CALORIE_NINJA_API_KEY = '40zvAZsDb7q/yMbKodGj1A==6ddAOLV8qB4sxUUg';
+const CALORIE_NINJA_BASE_URL = 'https://api.calorieninjas.com/v1';
 const { width } = Dimensions.get('window');
 
 interface MealEntry {
@@ -36,6 +39,18 @@ interface APIMealEntry {
   updatedAt: string;
 }
 
+interface NutritionItem {
+  name: string;
+  calories: number;
+  protein_g: number;
+  carbohydrates_total_g: number;
+  fat_total_g: number;
+  serving_size_g: number;
+  fiber_g: number;
+  sugar_g: number;
+  sodium_mg: number;
+}
+
 export default function LogMeal() {
   const router = useRouter();
   const [totalCalories, setTotalCalories] = useState(0);
@@ -48,6 +63,9 @@ export default function LogMeal() {
   const [carbs, setCarbs] = useState('');
   const [fats, setFats] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [isSearching, setIsSearching] = useState(false);
+  const [isAnalyzingImage, setIsAnalyzingImage] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const currentDate = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
@@ -90,7 +108,15 @@ export default function LogMeal() {
 
   useEffect(() => {
     fetchTodayMealData();
+    requestPermissions();
   }, []);
+
+  const requestPermissions = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission Required', 'Camera permission is needed to scan meals.');
+    }
+  };
 
   const getAuthToken = async (): Promise<string | null> => {
     try {
@@ -99,6 +125,198 @@ export default function LogMeal() {
       console.error('Error getting auth token:', error);
       return null;
     }
+  };
+
+  // Search food nutrition using CalorieNinjas API
+  const searchFoodNutrition = async (query: string) => {
+    if (!query.trim()) {
+      Alert.alert('Empty Query', 'Please enter a food item to search.');
+      return;
+    }
+
+    setIsSearching(true);
+    try {
+      const response = await axios.get(
+        `${CALORIE_NINJA_BASE_URL}/nutrition?query=${encodeURIComponent(query)}`,
+        {
+          headers: {
+            'X-Api-Key': CALORIE_NINJA_API_KEY,
+          },
+        }
+      );
+
+      if (response.data.items && response.data.items.length > 0) {
+        const items: NutritionItem[] = response.data.items;
+        
+        if (items.length === 1) {
+          // Single item - auto-fill the form
+          const item = items[0];
+          setFoodName(item.name);
+          setCalories(Math.round(item.calories).toString());
+          setProtein(Math.round(item.protein_g).toString());
+          setCarbs(Math.round(item.carbohydrates_total_g).toString());
+          setFats(Math.round(item.fat_total_g).toString());
+          setSearchQuery('');
+          Alert.alert('Success', `Found nutrition info for ${item.name} (${item.serving_size_g}g serving)`);
+        } else {
+          // Multiple items - show selection
+          const itemsList = items.map((item, index) => 
+            `${index + 1}. ${item.name}: ${Math.round(item.calories)} cal, ${Math.round(item.protein_g)}g protein`
+          ).join('\n');
+          
+          Alert.alert(
+            'Multiple Items Found',
+            `Found ${items.length} items:\n\n${itemsList}\n\nUsing the first item. You can search again for specific items.`,
+            [
+              {
+                text: 'Use First Item',
+                onPress: () => {
+                  const item = items[0];
+                  setFoodName(item.name);
+                  setCalories(Math.round(item.calories).toString());
+                  setProtein(Math.round(item.protein_g).toString());
+                  setCarbs(Math.round(item.carbohydrates_total_g).toString());
+                  setFats(Math.round(item.fat_total_g).toString());
+                  setSearchQuery('');
+                }
+              },
+              { text: 'Cancel', style: 'cancel' }
+            ]
+          );
+        }
+      } else {
+        Alert.alert('Not Found', 'No nutrition information found for this food item. Try a different query.');
+      }
+    } catch (error: any) {
+      console.error('Error searching nutrition:', error);
+      Alert.alert('Search Error', 'Failed to fetch nutrition data. Please try again.');
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  // Scan meal from image using CalorieNinjas Image API
+  const scanMealFromImage = async () => {
+    try {
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        await analyzeMealImage(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
+      Alert.alert('Error', 'Failed to capture image. Please try again.');
+    }
+  };
+
+  const pickImageFromGallery = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        await analyzeMealImage(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
+      Alert.alert('Error', 'Failed to select image. Please try again.');
+    }
+  };
+
+  const analyzeMealImage = async (imageUri: string) => {
+    setIsAnalyzingImage(true);
+    try {
+      // Create form data for image upload
+      const formData = new FormData();
+      const filename = imageUri.split('/').pop() || 'image.jpg';
+      const match = /\.(\w+)$/.exec(filename);
+      const type = match ? `image/${match[1]}` : 'image/jpeg';
+
+      formData.append('media', {
+        uri: imageUri,
+        name: filename,
+        type: type,
+      } as any);
+
+      const response = await axios.post(
+        `${CALORIE_NINJA_BASE_URL}/imagetextnutrition`,
+        formData,
+        {
+          headers: {
+            'X-Api-Key': CALORIE_NINJA_API_KEY,
+            'Content-Type': 'multipart/form-data',
+          },
+        }
+      );
+
+      if (response.data.items && response.data.items.length > 0) {
+        const items: NutritionItem[] = response.data.items;
+        
+        // Calculate totals from all detected items
+        const totalNutrition = items.reduce((acc, item) => ({
+          calories: acc.calories + item.calories,
+          protein: acc.protein + item.protein_g,
+          carbs: acc.carbs + item.carbohydrates_total_g,
+          fats: acc.fats + item.fat_total_g,
+        }), { calories: 0, protein: 0, carbs: 0, fats: 0 });
+
+        const foodNames = items.map(item => item.name).join(', ');
+        
+        setFoodName(foodNames);
+        setCalories(Math.round(totalNutrition.calories).toString());
+        setProtein(Math.round(totalNutrition.protein).toString());
+        setCarbs(Math.round(totalNutrition.carbs).toString());
+        setFats(Math.round(totalNutrition.fats).toString());
+
+        Alert.alert(
+          'Image Analyzed!',
+          `Detected: ${foodNames}\n\nTotal: ${Math.round(totalNutrition.calories)} calories`
+        );
+      } else {
+        Alert.alert(
+          'No Food Detected',
+          'Could not detect any food items in the image. Please try:\n• Taking a clearer photo\n• Ensuring good lighting\n• Capturing food items with visible text/labels'
+        );
+      }
+    } catch (error: any) {
+      console.error('Error analyzing image:', error);
+      Alert.alert(
+        'Analysis Error',
+        'Failed to analyze the image. Please ensure the image contains visible food text or labels.'
+      );
+    } finally {
+      setIsAnalyzingImage(false);
+    }
+  };
+
+  const showImageOptions = () => {
+    Alert.alert(
+      'Scan Meal',
+      'Choose an option:',
+      [
+        {
+          text: 'Take Photo',
+          onPress: scanMealFromImage,
+        },
+        {
+          text: 'Choose from Gallery',
+          onPress: pickImageFromGallery,
+        },
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+      ]
+    );
   };
 
   const logMealToAPI = async (mealData: Omit<MealEntry, 'id' | 'time'>): Promise<boolean> => {
@@ -241,6 +459,7 @@ export default function LogMeal() {
     setProtein('');
     setCarbs('');
     setFats('');
+    setSearchQuery('');
   };
 
   const removeMealEntry = (id: string) => {
@@ -277,15 +496,12 @@ export default function LogMeal() {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="light" />
-      
-  
 
       <ScrollView 
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContainer}
       >
-
-            {/* Header */}
+        {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
@@ -299,7 +515,7 @@ export default function LogMeal() {
           </TouchableOpacity>
         </View>
 
-        {/* Calorie Progress Card with Background Image */}
+        {/* Calorie Progress Card */}
         <View style={styles.progressSection}>
           <View style={styles.calorieCard}>
             <Image 
@@ -328,7 +544,6 @@ export default function LogMeal() {
                 {getEncouragementMessage()}
               </Text>
 
-              {/* Macro Summary */}
               <View style={styles.macroSummary}>
                 <View style={styles.macroItem}>
                   <Text style={styles.macroValue}>
@@ -351,6 +566,66 @@ export default function LogMeal() {
               </View>
             </View>
           </View>
+        </View>
+
+        {/* Quick Action Buttons */}
+        <View style={styles.quickActionsSection}>
+          <TouchableOpacity 
+            style={styles.quickActionButton}
+            onPress={showImageOptions}
+            disabled={isAnalyzingImage}
+          >
+            <LinearGradient
+              colors={['#8B5CF6', '#7C3AED']}
+              style={styles.quickActionGradient}
+            >
+              {isAnalyzingImage ? (
+                <ActivityIndicator color="#FFFFFF" size="small" />
+              ) : (
+                <Camera size={24} color="#FFFFFF" strokeWidth={2.5} />
+              )}
+              <Text style={styles.quickActionText}>
+                {isAnalyzingImage ? 'Analyzing...' : 'Scan Meal'}
+              </Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+
+        {/* Food Search Section */}
+        <View style={styles.searchSection}>
+          <Text style={styles.sectionTitle}>Search Food Nutrition</Text>
+          <View style={styles.searchCard}>
+            <View style={styles.searchInputContainer}>
+              <Search size={20} color="#94A3B8" strokeWidth={2.5} />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="e.g., 2 eggs and toast, 100g chicken breast"
+                placeholderTextColor="#64748B"
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                onSubmitEditing={() => searchFoodNutrition(searchQuery)}
+              />
+            </View>
+            <TouchableOpacity 
+              style={styles.searchButton}
+              onPress={() => searchFoodNutrition(searchQuery)}
+              disabled={isSearching}
+            >
+              <LinearGradient
+                colors={['#3B82F6', '#2563EB']}
+                style={styles.searchButtonGradient}
+              >
+                {isSearching ? (
+                  <ActivityIndicator color="#FFFFFF" size="small" />
+                ) : (
+                  <Text style={styles.searchButtonText}>Search</Text>
+                )}
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+          <Text style={styles.searchHint}>
+            💡 Tip: You can specify quantities like "3 tomatoes" or "1lb beef"
+          </Text>
         </View>
 
         {/* Meal Type Selection */}
@@ -468,25 +743,6 @@ export default function LogMeal() {
                 <Text style={styles.addButtonText}>Log Meal</Text>
               </LinearGradient>
             </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Nutrition Tips Card */}
-        <View style={styles.tipsSection}>
-          <View style={styles.tipsCard}>
-            <Image 
-              source={{ uri: 'https://images.unsplash.com/photo-1498837167922-ddd27525d352?w=800&q=80' }}
-              style={styles.tipsImage}
-            />
-            <View style={styles.tipsOverlay}>
-              <View style={styles.tipsContent}>
-                <Utensils size={32} color="#FFFFFF" strokeWidth={2} />
-                <Text style={styles.tipsTitle}>Balanced Nutrition</Text>
-                <Text style={styles.tipsText}>
-                  Track your macros to ensure you're getting the right balance of protein, carbs, and fats for optimal health.
-                </Text>
-              </View>
-            </View>
           </View>
         </View>
 
@@ -620,7 +876,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   progressSection: {
-    marginBottom: 32,
+    marginBottom: 24,
   },
   calorieCard: {
     borderRadius: 24,
@@ -712,8 +968,74 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.8)',
     marginTop: 4,
   },
+  quickActionsSection: {
+    marginBottom: 24,
+  },
+  quickActionButton: {
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  quickActionGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    gap: 12,
+  },
+  quickActionText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  searchSection: {
+    marginBottom: 24,
+  },
+  searchCard: {
+    backgroundColor: '#1E293B',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  searchInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#0F172A',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 15,
+    color: '#FFFFFF',
+    marginLeft: 12,
+  },
+  searchButton: {
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  searchButtonGradient: {
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  searchButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  searchHint: {
+    fontSize: 13,
+    color: '#94A3B8',
+    marginTop: 12,
+    fontStyle: 'italic',
+  },
   mealTypeSection: {
-    marginBottom: 32,
+    marginBottom: 24,
   },
   sectionTitle: {
     fontSize: 18,
@@ -801,58 +1123,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#FFFFFF',
-  },
-  tipsSection: {
-    marginBottom: 32,
-  },
-  tipsCard: {
-    borderRadius: 20,
-    overflow: 'hidden',
-    height: 220,
-    position: 'relative',
-    borderWidth: 2,
-    borderColor: '#334155',
-  },
-  tipsImage: {
-    width: '100%',
-    height: '100%',
-    position: 'absolute',
-  },
-  tipsOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.35)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
-  tipsContent: {
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    maxWidth: '90%',
-  },
-  tipsTitle: {
-    fontSize: 26,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    marginTop: 16,
-    marginBottom: 12,
-    textShadowColor: 'rgba(0, 0, 0, 0.3)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
-  },
-  tipsText: {
-    fontSize: 15,
-    color: '#FFFFFF',
-    textAlign: 'center',
-    lineHeight: 22,
-    fontWeight: '500',
-    textShadowColor: 'rgba(0, 0, 0, 0.2)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
   },
   historySection: {
     marginBottom: 32,
