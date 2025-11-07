@@ -321,9 +321,9 @@ export default function StartWorkout() {
           <Text style={styles.headerTitle}>Workout Tracker</Text>
           <Text style={styles.headerSubtitle}>{currentDate}</Text>
         </View>
-        <TouchableOpacity style={styles.settingsButton}>
+        {/* <TouchableOpacity style={styles.settingsButton}>
           <Ionicons name="settings-outline" size={24} color="#FFFFFF" />
-        </TouchableOpacity>
+        </TouchableOpacity> */}
       </View>
 
 

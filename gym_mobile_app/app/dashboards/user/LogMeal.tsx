@@ -782,9 +782,9 @@ export default function LogMeal() {
             <Text style={styles.headerTitle}>Meal Tracker</Text>
             <Text style={styles.headerSubtitle}>{currentDate}</Text>
           </View>
-          <TouchableOpacity style={styles.settingsButton}>
+          {/* <TouchableOpacity style={styles.settingsButton}>
             <Ionicons name="settings-outline" size={24} color="#FFFFFF" />
-          </TouchableOpacity>
+          </TouchableOpacity> */}
         </View>
 
         {/* Calorie Progress Card */}
