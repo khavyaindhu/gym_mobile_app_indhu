@@ -9,7 +9,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import type { NavigationProp } from '@react-navigation/native';
 import { getRandomQuote, type Quote } from './motivationalQuotes';
-import { Lightbulb, Share2 } from 'lucide-react-native';
 import { Video, Play, Star, Eye, Activity, Flame, Droplet, Target, Utensils, TrendingUp } from 'lucide-react-native';
 import { getRandomVideo, getYouTubeThumbnail, getYouTubeUrl, type VideoRecommendation } from './videoRecommendations';
 import { Linking, Image } from 'react-native';
@@ -332,22 +331,16 @@ useEffect(() => {
         {dailyQuote && (
           <View style={styles.thoughtCard}>
             <View style={styles.thoughtContent}>
-              <View style={styles.bulbContainer}>
-                <Lightbulb size={20} color="#FFFFFF" />
-              </View>
+             
               <View style={styles.thoughtTextContainer}>
                 <View style={styles.thoughtHeader}>
                   <Text style={styles.thoughtLabel}>Thought for the Day</Text>
-                  <View style={styles.motivationBadge}>
+                  {/* <View style={styles.motivationBadge}>
                     <Text style={styles.motivationText}>{"Motivation"}</Text>
-                  </View>
+                  </View> */}
                 </View>
                 <Text style={styles.quoteText}>"{dailyQuote.text}"</Text>
-                <Text style={styles.quoteAuthor}>— {dailyQuote.author}</Text>
-              </View>
-              <TouchableOpacity style={styles.shareButton}>
-                <Share2 size={16} color="#FFFFFF" />
-              </TouchableOpacity>
+              </View>            
             </View>
           </View>
         )}
@@ -1234,7 +1227,7 @@ thoughtCard: {
   backgroundColor: '#0e292e',
   marginHorizontal: 20,
   borderRadius: 16,
-  padding: 16,
+  padding: 10,
   marginBottom: 24,
   borderWidth: 1,
   borderColor: '#2a3441',
@@ -1243,15 +1236,6 @@ thoughtContent: {
   flexDirection: 'row',
   alignItems: 'flex-start',
   gap: 12,
-},
-bulbContainer: {
-  width: 40,
-  height: 40,
-  backgroundColor: '#0F3D3E',  // Same as card background
-  borderRadius: 12,              // Rounded square corners
-  justifyContent: 'center',
-  alignItems: 'center',
-  flexShrink: 0,
 },
 thoughtTextContainer: {
   flex: 1,
@@ -1266,18 +1250,6 @@ thoughtLabel: {
   fontSize: 15,
   fontWeight: '600',
   color: '#FFFFFF',
-},
-motivationBadge: {
-  paddingHorizontal: 8,
-  paddingVertical: 2,
-  borderRadius: 6,
-  borderWidth: 1,
-  borderColor: '#2a3441',
-},
-motivationText: {
-  fontSize: 11,
-  color: '#FFFFFF',
-  fontWeight: '500',
 },
 shareButton: {
   width: 32,

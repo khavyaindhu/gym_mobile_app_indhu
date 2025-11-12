@@ -421,14 +421,16 @@ export default function ProfileSettings() {
     <SafeAreaView style={styles.container}>
       <StatusBar style="dark" />
       
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Profile Settings</Text>
-        <Text style={styles.headerSubtitle}>
-          Manage your personal information, health metrics, and preferences
-        </Text>
-      </View>
+     
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Profile Settings</Text>
+          <Text style={styles.headerSubtitle}>
+            Manage your personal information, health metrics, and preferences
+          </Text>
+        </View>
+       
         {/* Personal Information Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
@@ -995,11 +997,8 @@ disabledInput: {
     backgroundColor: '#0F172A',
   },
   header: {
-    backgroundColor: '#1E293B',
-    paddingHorizontal: 24,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#374151',
+    paddingHorizontal: 20,
+    paddingVertical: 24,
   },
   loadingContainer: {
   flex: 1,
@@ -1017,14 +1016,14 @@ saveButtonDisabled: {
   opacity: 0.6,
 },
   headerTitle: {
-    fontSize: 24,
+    fontSize: 32,
     fontWeight: 'bold',
     color: '#FFFFFF',
+    marginBottom: 8,
   },
   headerSubtitle: {
     color: '#94A3B8',
-    fontSize: 14,
-    marginTop: 4,
+    fontSize: 16,
   },
   scrollView: {
     flex: 1,
